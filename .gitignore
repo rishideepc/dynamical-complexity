@@ -1,0 +1,8 @@
+# Ignore files
+main_not.py
+coursework.ipynb
+new.py
+new_copy.py
+
+# Ignore folder
+/__pycache__/
