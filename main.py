@@ -124,29 +124,31 @@ class SmallWorldModular():
 
         D  -- Updated Conduction Delay matrix after rewiring, of size (N x N), N : Total number of neurons (1000).
         """
-        for excitatory_module_index in range(self.n_excitatory_modules):                                                    # for each excitatory neuron module
-            start_index = excitatory_module_index * self.excitatory_neurons_per_module
+        for excitatory_module_index in range(self.n_excitatory_modules):                                            # for each excitatory neuron module
+            start_index = excitatory_module_index * self.excitatory_neurons_per_module                              
             end_index = start_index + self.excitatory_neurons_per_module
             
-            # Random rewiring
-            for i in range(start_index, end_index):
+            for i in range(start_index, end_index):                                             
                 for j in range(start_index, end_index):
-                    if i!=j and W[i, j]> 0:
-                        if np.random.rand() < p:
+                    if i!=j and W[i, j]> 0:                                                                         # check for self-connections & existing excitatory-to-excitatory connection
+                        # Rewire based on p-value
+                        if np.random.rand() < p:                                                                    
                             already_rewired=False
                             while not already_rewired:
-                                target_module = np.random.choice([m for m in range(self.n_excitatory_modules) if m != excitatory_module_index])
+                                target_module = np.random.choice([m for m in range(self.n_excitatory_modules) if m != excitatory_module_index])         # choose a random module apart from source neuron module
                                 target_start = target_module * self.excitatory_neurons_per_module
                                 target_end = target_start + self.excitatory_neurons_per_module
-                                dest = np.random.randint(target_start, target_end)
+                                dest = np.random.randint(target_start, target_end)                                                                      # choose a random target neuron from choosen module
 
                                 if W[i, dest] == 0:
-                                    W[i, dest]= W[i, j]
+                                    # Assign weights and delays of old connection to new connection
+                                    W[i, dest]= W[i, j]                                                             
                                     D[i, dest]= D[i, j]
 
+                                    # Reset weights and delays of old connection
                                     W[i, j]=0
                                     D[i, j]=1
-                                    already_rewired=True    
+                                    already_rewired=True                                                            
         return W, D
     
     def generate_connectivity_matrix(self, W):
@@ -180,7 +182,7 @@ class SmallWorldModular():
         Raster plot of the firing data for the given simulation.
         """
         if firing_data:
-            times, neurons = zip(*firing_data)
+            times, neurons = zip(*firing_data)                              # from firing data
             plt.figure(figsize=(12, 5))
             plt.scatter(times, neurons, s=16, color='blue', marker='o')
             plt.xlabel("Time (ms)")
@@ -196,30 +198,28 @@ class SmallWorldModular():
         Outputs:
         Mean firing rate plot in each module.
         """
-        module_sizes = [self.excitatory_neurons_per_module] * 8 + [self.inhibitory_neurons_in_module]                                                        # 8 - excitatory; 1 - inhibitory
-        num_modules = len(module_sizes)
-        firing_rates = np.zeros((num_modules, 50))                                              # 50 data points per module
+        module_sizes = [self.excitatory_neurons_per_module] * 8 + [self.inhibitory_neurons_in_module]       # 8 - excitatory; 1 - inhibitory
+        firing_rates = np.zeros((self.total_modules, 50))                                                          # initialized for 50 data points per module
 
-        for i, (start, end) in enumerate(zip(range(0, self.T, 20), range(50, self.T + 50, 20))):
-            # Find neurons firing in the current window
-            window_firing = np.array([f for t, f in firing_data if start <= t < end])
+        for i, (start, end) in enumerate(zip(range(0, self.T, 20), range(50, self.T + 50, 20))):            # each start and end represents the boundaries of a 50ms time window    
+            # Identify neurons firing in the current window
+            window_firing = np.array([f for t, f in firing_data if start <= t < end])                   
         
             # Compute mean firing rate per module
-            for module, size in enumerate(module_sizes):
-                module_start = sum(module_sizes[:module])
+            for module, size in enumerate(module_sizes):                                
+                module_start = sum(module_sizes[:module])                                                   # for range of neurons in current module
                 module_end = module_start + size
-                module_firing = (window_firing >= module_start) & (window_firing < module_end)
-                firing_rates[module, i] = np.sum(module_firing) / size  # Average firing per neuron
+                module_firing = (window_firing >= module_start) & (window_firing < module_end)              # check if the neurons fired in this window belong to current module
+                firing_rates[module, i] = np.sum(module_firing) / size                                      # calculate mean firing rate of module
 
         # Plot mean firing rates for each module
         plt.figure(figsize=(12, 6))
-        for module in range(num_modules):
+        for module in range(self.total_modules):
             if module!=8:
                 plt.plot(range(0, self.T, 20), firing_rates[module, :], label=f"Module {module + 1}")
         plt.xlabel("Time (ms)")
         plt.ylabel("Mean Firing Rate")
         plt.title(f"Mean Firing Rate in Each Module (p = {p})")
-        # plt.legend()
         plt.show()
 
 
@@ -227,7 +227,6 @@ class SmallWorldModular():
 if __name__=="__main__":
     
     p_values=[0, 0.1, 0.2, 0.3, 0.4, 0.5]
-    # p_values=[0.5]
 
     # For each rewiring probability
     for p in p_values:
@@ -241,7 +240,7 @@ if __name__=="__main__":
         # Setup the initial connections
         W, D = smallWorldModular.initial_setup()
 
-        # Define Izikevich neuron parameters
+        # Define Izhikevich neuron parameters
         r= np.random.random()
         a = np.concatenate([0.02 * np.ones(800), (0.02+0.08*r) * np.ones(200)])  # split parameters for excitatory & inhibitory
         b = np.concatenate([0.2 * np.ones(800), (0.25-0.05*r) * np.ones(200)])
