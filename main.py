@@ -4,11 +4,29 @@ from iznetwork import IzNetwork
 
 
 class SmallWorldModular():
+    """
+    This class encapsulates the implementation details of a Modular Small World Network, initializes network parameters, 
+    defines handler methods for initial connections setup and rewiring, as well as methods for connectivity matrices, 
+    raster plots and mean firing rate plots.
+    
+    __init__(self) -- Initalizes parameter for the Modular Small World Network.
+    
+    initial_setup(self) -- Generates the modular network as per described experimental setup (Dynamical Complexity).
+    
+    apply_rewiring(self, W, D, p) -- Rewires existing connections with probability p.
+    
+    generate_connectivity_matrix(self, W) -- Creates connectivity matrix showcasing weights of connections (defined by W) between neurons.
+    
+    generate_raster_plot(self, firing_data) -- Generate raster plot to illustrate firing of the neurons. 
+    
+    generate_mean_firing_rate_plot(self) -- Generates the plot for mean firing rate of neurons per module in ms.    
+    
+    """
     def __init__(self):
         # Modular network parameters
-        self.N = 1000                                                                                       # total neurons
-        self.n_excitatory_neurons = 800                                                                     # excitatory count
-        self.n_inhibitory_neurons = self.N - self.n_excitatory_neurons                                      # inhibitory count
+        self.N = 1000                                                                                       # total number of neurons
+        self.n_excitatory_neurons = 800                                                                     # excitatory neurons count
+        self.n_inhibitory_neurons = self.N - self.n_excitatory_neurons                                      # inhibitory neurons count
         self.excitatory_neurons_per_module= 100
         self.inhibitory_neurons_in_module= 200
         self.n_excitatory_modules= int(self.n_excitatory_neurons / self.excitatory_neurons_per_module)      # no of excitatory modules
@@ -21,6 +39,28 @@ class SmallWorldModular():
 
     # Generate modular network as per experimental setup
     def initial_setup(self):
+        """
+        Initialise the modular network as per the required experimental setup
+        delay. This involves initialization across 4 different possible combinations of connections.
+        
+        Excitatory-Excitatory : 1000 random connections within the module, Type : Small World, Modular, Weight = 1, Scaling factor = 17
+                                Random delay from 1-20 ms(Dmax)
+                                
+        Excitatory-Inhibitory : Four excitatory neurons are connected to each inhibitory neuron, Type : Focal, Weight = Random(0,1), Scaling factor = 50
+                                Fixed delay of 1 ms
+        
+        Inhibitory-Excitatory : All excitatory neurons in all modules, Type : Diffuse, Weight = Random(-1,0), Scaling factor = 2
+                                Fixed delay of 1 ms
+                                
+        Excitatory-Excitatory : All inhibitory neurons, Type : Diffuse, Weight = Random(-1,0), Scaling factor = 1
+                                Fixed delay of 1 ms
+
+        Outputs:
+        W  -- A numpy array for the  Weight, of size (N x N), N : Total number of neurons (1000). 
+
+        D  -- A numpy array for the Conduction Delay, of size (N x N), N : Total number of neurons (1000).
+        """
+        
         W = np.zeros((self.N, self.N))                                                                        # weight matrix
         D = np.ones((self.N, self.N), dtype=int)                                                              # delay matrix initialized to ones (for zero delays)
 
@@ -70,6 +110,20 @@ class SmallWorldModular():
 
     # Rewire for small-world networks
     def apply_rewiring(self, W, D, p):
+        """
+        This method is used for re-wiring a given network, based on the rewiring probability 'p'.
+         
+        Inputs:
+        W  -- Weight matrix, of size (N x N), N : Total number of neurons (1000). 
+
+        D  -- Conduction Delay matrix, of size (N x N), N : Total number of neurons (1000).
+        p  -- A real number in [0,1] as the Rewiring probability . 
+        
+        Outputs:
+        W  -- Updated Weight matrix after rewiring, of size (N x N), N : Total number of neurons (1000). 
+
+        D  -- Updated Conduction Delay matrix after rewiring, of size (N x N), N : Total number of neurons (1000).
+        """
         for excitatory_module_index in range(self.n_excitatory_modules):                                                    # for each excitatory neuron module
             start_index = excitatory_module_index * self.excitatory_neurons_per_module
             end_index = start_index + self.excitatory_neurons_per_module
@@ -96,6 +150,15 @@ class SmallWorldModular():
         return W, D
     
     def generate_connectivity_matrix(self, W):
+        """
+        This method is used for plotting the connectivity matrix.
+         
+        Inputs:
+        W  -- Weight matrix, of size (N x N), N : Total number of neurons (1000). 
+        
+        Outputs:
+        Colorbar plot of the connectivity matrix
+        """
         plt.figure(figsize=(8, 8))
         plt.imshow(W, cmap='binary', interpolation='none', vmin=0, vmax=1.5)
         plt.title(f"Connectivity Matrix (p = {p})")
@@ -107,6 +170,15 @@ class SmallWorldModular():
         plt.show()
 
     def generate_raster_plot(self, firing_data):
+        """
+        This method is used for raster plot of the neuron firing in a simulation run. 
+         
+        Inputs:
+        firing_data  -- Firing data list comprising of (time-step, neuron_fired) tuples
+                
+        Outputs:
+        Raster plot of the firing data for the given simulation.
+        """
         if firing_data:
             times, neurons = zip(*firing_data)
             plt.figure(figsize=(12, 5))
@@ -118,6 +190,12 @@ class SmallWorldModular():
             plt.show()
 
     def generate_mean_firing_rate_plot(self):
+        """
+        This method is used for generating the mean firing rate plot in each module in a simulation run.     
+               
+        Outputs:
+        Mean firing rate plot in each module.
+        """
         module_sizes = [self.excitatory_neurons_per_module] * 8 + [self.inhibitory_neurons_in_module]                                                        # 8 - excitatory; 1 - inhibitory
         num_modules = len(module_sizes)
         firing_rates = np.zeros((num_modules, 50))                                              # 50 data points per module
@@ -147,6 +225,7 @@ class SmallWorldModular():
 
 
 if __name__=="__main__":
+    
     p_values=[0, 0.1, 0.2, 0.3, 0.4, 0.5]
     # p_values=[0.5]
 
